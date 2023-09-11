@@ -1,0 +1,20 @@
+{
+  "name": "backend",
+  "module": "src/index.ts",
+  "type": "module",
+  "devDependencies": {
+    "bun-types": "latest",
+    "prisma": "5.2.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "start": "bun --hot run src/index.ts"
+  },
+  "dependencies": {
+    "@elysiajs/swagger": "^0.6.2",
+    "@prisma/client": "5.2.0",
+    "elysia": "^0.6.22"
+  }
+}
