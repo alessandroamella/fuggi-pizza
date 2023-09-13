@@ -11,10 +11,10 @@ datasource db {
 }
 
 model Table {
-  number     Int     @id @unique
-  isOccupied Boolean @default(false)
-  capacity   Int
-  orders     Order[]
+  number Int     @id @unique
+  seats  Int?
+  notes  String?
+  orders Order[]
 }
 
 model Order {

@@ -1,6 +1,11 @@
 import Elysia, { t } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import { PrismaClient } from "@prisma/client";
+import { logger } from "./shared/logger";
+// import { runMdns } from "./config/mdns";
+import { settings } from "./config/settings";
+
+// runMdns();
 
 const app = new Elysia()
     .use(
@@ -20,8 +25,16 @@ const app = new Elysia()
     .group("/table", app => {
         return app
             .model({
-                "table.crud": t.Object({
-                    number: t.Integer()
+                "table.create": t.Object({
+                    number: t.Integer(),
+                    seats: t.Optional(t.Integer()),
+                    notes: t.Optional(t.String())
+                })
+            })
+            .model({
+                "table.update": t.Object({
+                    seats: t.Optional(t.Integer()),
+                    notes: t.Optional(t.String())
                 })
             })
             .get("/", async ({ db }) => db.table.findMany())
@@ -36,7 +49,7 @@ const app = new Elysia()
                     db.table.create({
                         data: body
                     }),
-                { body: "table.crud" }
+                { body: "table.create" }
             )
             .put(
                 "/:id",
@@ -45,7 +58,7 @@ const app = new Elysia()
                         where: { number: parseInt(id) },
                         data: body
                     }),
-                { body: "table.crud" }
+                { body: "table.update" }
             )
             .delete("/:id", async ({ db, params: { id } }) =>
                 db.table.delete({
@@ -56,7 +69,7 @@ const app = new Elysia()
     .group("/category", app => {
         return app
             .model({
-                "category.crud": t.Object({
+                "category.create": t.Object({
                     name: t.String()
                 })
             })
@@ -72,7 +85,7 @@ const app = new Elysia()
                     db.category.create({
                         data: body
                     }),
-                { body: "category.crud" }
+                { body: "category.create" }
             )
             .put(
                 "/:id",
@@ -81,7 +94,7 @@ const app = new Elysia()
                         where: { id: parseInt(id) },
                         data: body
                     }),
-                { body: "category.crud" }
+                { body: "category.create" }
             )
             .delete("/:id", async ({ db, params: { id } }) =>
                 db.category.delete({
@@ -92,18 +105,37 @@ const app = new Elysia()
     .group("/dish", app => {
         return app
             .model({
-                "dish.crud": t.Object({
+                "dish.create": t.Object({
                     name: t.String(),
                     description: t.Optional(t.String()),
                     price: t.Integer(),
                     categoryId: t.Integer()
                 })
             })
-            .get("/", async ({ db }) => db.dish.findMany())
+            .get("/", async ({ db }) =>
+                db.dish.findMany({
+                    select: {
+                        id: true,
+                        name: true,
+                        description: true,
+                        price: true,
+                        category: true
+                    }
+                })
+            )
             .get(
                 "/:id",
                 async ({ db, params: { id } }) =>
-                    await db.dish.findUnique({ where: { id: parseInt(id) } })
+                    await db.dish.findUnique({
+                        where: { id: parseInt(id) },
+                        select: {
+                            id: true,
+                            name: true,
+                            description: true,
+                            price: true,
+                            category: true
+                        }
+                    })
             )
             .post(
                 "/",
@@ -111,7 +143,7 @@ const app = new Elysia()
                     db.dish.create({
                         data: body
                     }),
-                { body: "dish.crud" }
+                { body: "dish.create" }
             )
             .put(
                 "/:id",
@@ -120,7 +152,7 @@ const app = new Elysia()
                         where: { id: parseInt(id) },
                         data: body
                     }),
-                { body: "dish.crud" }
+                { body: "dish.create" }
             )
             .delete("/:id", async ({ db, params: { id } }) =>
                 db.dish.delete({
@@ -132,7 +164,7 @@ const app = new Elysia()
         return (
             app
                 .model({
-                    "order.crud": t.Object({
+                    "order.create": t.Object({
                         tableId: t.Integer(),
                         dishes: t.Array(
                             t.Object({
@@ -148,7 +180,11 @@ const app = new Elysia()
                 // must execute join to get dishes
                 .get("/", async ({ db }) =>
                     db.order.findMany({
-                        include: {
+                        select: {
+                            id: true,
+                            date: true,
+                            paymentDate: true,
+                            notes: true,
                             dishes: {
                                 select: {
                                     dishId: false,
@@ -162,7 +198,8 @@ const app = new Elysia()
                                     quantity: true,
                                     notes: true
                                 }
-                            }
+                            },
+                            table: true
                         }
                     })
                 )
@@ -191,7 +228,7 @@ const app = new Elysia()
                                 }
                             }
                         }),
-                    { body: "order.crud" }
+                    { body: "order.create" }
                 )
                 .put(
                     "/:id",
@@ -205,7 +242,7 @@ const app = new Elysia()
                                 }
                             }
                         }),
-                    { body: "order.crud" }
+                    { body: "order.create" }
                 )
                 .delete("/:id", async ({ db, params: { id } }) => {
                     await db.orderedDish.deleteMany({
@@ -218,4 +255,6 @@ const app = new Elysia()
         );
     });
 
-app.listen(3000, () => console.log("Server is running on port 3000"));
+app.listen(settings.serverPort, () =>
+    logger.info("Server is running on port " + settings.serverPort)
+);
