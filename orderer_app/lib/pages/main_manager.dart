@@ -1,9 +1,12 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:orderer_app/components/address_card.dart';
+import 'package:orderer_app/misc/api_service.dart';
+import 'package:orderer_app/misc/main_state.dart';
 import 'package:orderer_app/misc/order.dart';
-import 'package:http/http.dart' as http;
+import 'package:orderer_app/pages/manage_order.dart';
+import 'package:provider/provider.dart';
 import '../components/layout.dart';
+import '../misc/connection_info.dart';
 
 class MainManagerPage extends StatefulWidget {
   final String serverAddress;
@@ -19,62 +22,27 @@ class MainManagerPage extends StatefulWidget {
   State<MainManagerPage> createState() => _MainManagerPage();
 }
 
+enum CrudAction { create, edit }
+
 class _MainManagerPage extends State<MainManagerPage> {
-  bool _loading = false;
-  List<Order> _orders = [];
   String? _error;
 
-  Future<void> _getOrders() async {
+  Future<List<Order>>? _orders = Future.value([]);
+
+  Future<void> _loadOrders() async {
     setState(() {
-      _loading = true;
-      _orders = [];
+      _orders = null;
     });
-
-    final serverAddress = widget.serverAddress;
-    final serverPort = widget.serverPort;
-
-    try {
-      final response = await http
-          .get(
-            Uri.http('$serverAddress:$serverPort', '/order'),
-          )
-          .timeout(const Duration(seconds: 5));
-
-      if (response.statusCode != 200) {
-        throw Exception(response.body);
-      }
-
-      final List<dynamic> ordersJson = jsonDecode(response.body);
-      final orders = ordersJson.map((json) => Order.fromJson(json)).toList();
-      setState(() {
-        _orders = orders;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Errore in GET $serverAddress:$serverPort/order'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      setState(() {
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _startManager() async {
-    _getOrders();
+    final orders = Provider.of<MainState>(context, listen: false).getOrders();
+    setState(() {
+      _orders = orders;
+    });
   }
 
   @override
   void initState() {
+    _orders = Provider.of<MainState>(context, listen: false).getOrders();
     super.initState();
-    _startManager();
   }
 
   @override
@@ -85,9 +53,11 @@ class _MainManagerPage extends State<MainManagerPage> {
       body: Column(
         children: [
           ServerAddressCard(
-            serverAddress: widget.serverAddress,
-            serverPort: widget.serverPort,
-            type: 'server API',
+            connectionInfo: ConnectionInfo(
+              serverAddress: widget.serverAddress,
+              serverPort: widget.serverPort,
+            ),
+            type: ServerType.api,
           ),
           const SizedBox(height: 8),
           const Text(
@@ -98,63 +68,92 @@ class _MainManagerPage extends State<MainManagerPage> {
             ),
           ),
           const SizedBox(height: 8),
-          if (_loading)
-            const Center(child: CircularProgressIndicator())
-          else if (_error != null)
-            Column(
-              children: [
-                const Text(
-                  'Errore',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(_error!),
-                TextButton(
-                  onPressed: _startManager,
-                  child: const Text('Riprova'),
-                ),
-              ],
-            )
-          else if (_orders.isEmpty)
-            const Center(child: Text('Nessun ordine'))
-          else
-            Expanded(
-              child: ListView.builder(
-                itemCount: _orders.length,
-                itemBuilder: (context, index) {
-                  final order = _orders[index];
-                  final amount = order.dishes
-                      .map((e) => e.quantity * e.dish.price)
-                      .reduce((a, b) => a + b);
-                  final amountStr = (amount / 100).toStringAsFixed(2);
-                  return Card(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        ListTile(
-                          leading: const Icon(Icons.shopping_cart),
-                          title: Text(
-                              'Tavolo ${order.table.number.toString()} - €$amountStr'),
-                          subtitle: Text(order.dishes
-                              .map((e) =>
-                                  '${e.quantity}x${e.dish.name} (€${(e.dish.price / 100).toStringAsFixed(2)})')
-                              .join(', ')),
+          // futurebuilder of _orders
+          FutureBuilder(
+            future: _orders,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.done) {
+                if (snapshot.hasError) {
+                  _error = snapshot.error.toString();
+
+                  return Column(
+                    children: [
+                      const Text(
+                        'Errore',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
                         ),
-                      ],
-                    ),
+                      ),
+                      Text(_error!),
+                      TextButton(
+                        onPressed: _loadOrders,
+                        child: const Text('Riprova'),
+                      ),
+                    ],
                   );
-                },
-              ),
-            ),
+                } else {
+                  _error = null;
+                  final orders = snapshot.data as List<Order>;
+
+                  if (orders.isEmpty) {
+                    return const Center(child: Text('Nessun ordine'));
+                  } else {
+                    return Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: _loadOrders,
+                        child: ListView.builder(
+                          itemCount: orders.length,
+                          itemBuilder: (context, index) {
+                            final order = orders[index];
+                            final amount = order.dishes
+                                .map((e) => e.quantity * e.dish.price)
+                                .reduce((a, b) => a + b);
+                            final amountStr = (amount / 100).toStringAsFixed(2);
+                            return Card(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  ListTile(
+                                    leading: const Icon(Icons.shopping_cart),
+                                    title: Text(
+                                        'Tavolo ${order.table.number.toString()} - €$amountStr'),
+                                    subtitle: Text(order.dishes
+                                        .map((e) =>
+                                            '${e.quantity}x${e.dish.name} (€${(e.dish.price / 100).toStringAsFixed(2)})')
+                                        .join(', ')),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                }
+              } else {
+                return const Center(child: CircularProgressIndicator());
+              }
+            },
+          ),
         ],
       ),
-      floatingActionButton: const FloatingActionButton(
-        onPressed: null, // TODO navigate to new order
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ManageOrderPage(
+                action: CrudAction.create,
+                onCrudDone: null,
+              ),
+            ),
+          );
+        },
         tooltip: 'Nuovo ordine',
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
       ),
     );
   }

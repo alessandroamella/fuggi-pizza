@@ -1,4 +1,4 @@
-package com.example.orderer_app
+package com.bitrey.fuggipizza_client
 
 import io.flutter.embedding.android.FlutterActivity
 

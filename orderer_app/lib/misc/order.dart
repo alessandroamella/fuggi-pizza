@@ -2,7 +2,7 @@ class Order {
   final int id;
   final DateTime date;
   final List<OrderedDish> dishes;
-  final Table table;
+  final TableInfo table;
   final DateTime? paymentDate;
   final String? notes;
 
@@ -13,11 +13,31 @@ class Order {
       json['dishes']
           .map<OrderedDish>((dish) => OrderedDish.fromJson(dish))
           .toList(),
-      Table.fromJson(json['table']),
+      TableInfo.fromJson(json['table']),
       paymentDate: json['paymentDate'] != null
           ? DateTime.parse(json['paymentDate'])
           : null,
       notes: json['notes'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'date': date.toIso8601String(),
+      'dishes': dishes.map((dish) => dish.toJson()).toList(),
+      'table': table.toJson(),
+      'paymentDate': paymentDate?.toIso8601String(),
+      'notes': notes,
+    };
+  }
+
+  factory Order.empty() {
+    return Order(
+      0,
+      DateTime.now(),
+      [],
+      TableInfo(0),
     );
   }
 
@@ -36,6 +56,14 @@ class OrderedDish {
       json['quantity'],
       notes: json['notes'],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'dish': dish.toJson(),
+      'quantity': quantity,
+      'notes': notes,
+    };
   }
 
   OrderedDish(this.dish, this.quantity, {this.notes});
@@ -59,23 +87,41 @@ class Dish {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'price': price,
+      'category': category?.toJson(),
+      'description': description,
+    };
+  }
+
   Dish(this.id, this.name, this.price, {this.category, this.description});
 }
 
-class Table {
+class TableInfo {
   final int number;
   final int? seats;
   final String? notes;
 
-  factory Table.fromJson(Map<String, dynamic> json) {
-    return Table(
+  factory TableInfo.fromJson(Map<String, dynamic> json) {
+    return TableInfo(
       json['number'],
       seats: json['seats'],
       notes: json['notes'],
     );
   }
 
-  Table(this.number, {this.seats, this.notes});
+  Map<String, dynamic> toJson() {
+    return {
+      'number': number,
+      'seats': seats,
+      'notes': notes,
+    };
+  }
+
+  TableInfo(this.number, {this.seats, this.notes});
 }
 
 class Category {
@@ -86,5 +132,9 @@ class Category {
 
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(json['id'], json['name']);
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'name': name};
   }
 }

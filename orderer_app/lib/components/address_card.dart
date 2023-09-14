@@ -1,22 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:orderer_app/misc/connection_info.dart';
+
+enum ServerType { mDNS, api }
+
+String getServerTypeStr(ServerType type) {
+  switch (type) {
+    case ServerType.mDNS:
+      return 'mDNS';
+    case ServerType.api:
+      return 'API';
+  }
+}
 
 class ServerAddressCard extends StatelessWidget {
-  final String? serverName;
-  final String serverAddress;
-  final int serverPort;
-  final String type;
+  final ConnectionInfo? connectionInfo;
+  final ServerType type;
 
   const ServerAddressCard({
     super.key,
-    this.serverName,
-    required this.serverAddress,
-    required this.serverPort,
+    this.connectionInfo,
     required this.type,
   });
 
   @override
   Widget build(BuildContext context) {
+    final serverName = connectionInfo?.serverName;
+    final serverAddress = connectionInfo?.serverAddress;
+    final serverPort = connectionInfo?.serverPort;
+
     return Card(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -25,7 +37,7 @@ class ServerAddressCard extends StatelessWidget {
             leading: const Icon(Icons.network_wifi),
             title: Text(serverName ?? '$serverAddress:$serverPort'),
             subtitle: Text(serverName == null
-                ? "Indirizzo $type"
+                ? getServerTypeStr(type)
                 : '$serverAddress:$serverPort'),
           ),
           Row(

@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:orderer_app/misc/main_state.dart';
+import 'package:provider/provider.dart';
 import 'package:orderer_app/pages/start_mdns.dart';
 
 const String mdnsServiceName = '_fuggipizza._tcp';
 const int apiServerPort = 3000;
 
 void main() {
-  runApp(const OrdererApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => MainState(),
+      child: const OrdererApp(),
+    ),
+  );
 }
 
 class OrdererApp extends StatelessWidget {
