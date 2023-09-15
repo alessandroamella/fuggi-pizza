@@ -3,6 +3,7 @@ import { swagger } from "@elysiajs/swagger";
 import { PrismaClient } from "@prisma/client";
 import { logger } from "./shared/logger";
 import { settings } from "./config/settings";
+import { orderQuery } from "./queries/order";
 
 // runMdns();
 
@@ -180,62 +181,40 @@ const app = new Elysia()
               }),
             })
             // must execute join to get dishes
-            .get("/", async ({ db }) =>
-              db.order.findMany({
-                select: {
-                  id: true,
-                  date: true,
-                  paymentDate: true,
-                  notes: true,
-                  dishes: {
-                    select: {
-                      dishId: false,
-                      dish: {
-                        select: {
-                          id: true,
-                          name: true,
-                          price: true,
-                        },
-                      },
-                      quantity: true,
-                      notes: true,
-                    },
-                  },
-                  table: true,
-                },
-              }),
-            )
+            .get("/", async ({ db }) => db.order.findMany(orderQuery))
             .get(
               "/:id",
               async ({ db, params: { id } }) =>
                 await db.order.findUnique({
                   where: { id: parseInt(id) },
-                  include: {
-                    dishes: {
-                      include: {
-                        dish: true,
-                      },
-                    },
-                  },
+                  ...orderQuery,
                 }),
             )
             .post(
               "/",
-              async ({ db, body }) =>
-                db.order.create({
+              async ({ db, body }) => {
+                const doc = await db.order.create({
                   data: {
                     ...body,
                     dishes: {
                       create: body.dishes,
                     },
                   },
-                }),
+                });
+
+                const fullDoc = await db.order.findUnique({
+                  where: { id: doc.id },
+                  ...orderQuery,
+                });
+                settings.printers[0].printOrder(fullDoc as any);
+                return fullDoc;
+              },
               { body: "order.create" },
             )
             .put(
               "/:id",
-              async ({ db, body, params: { id } }) =>
-                db.order.update({
+              async ({ db, body, params: { id } }) => {
+                const doc = await db.order.update({
                   where: { id: parseInt(id) },
                   data: {
                     ...body,
@@ -243,7 +222,13 @@ const app = new Elysia()
                       create: body.dishes,
                     },
                   },
-                }),
+                });
+                // PRINT!!
+                return db.order.findUnique({
+                  where: { id: doc.id },
+                  ...orderQuery,
+                });
+              },
               { body: "order.create" },
             )
             .delete("/:id", async ({ db, params: { id } }) => {

@@ -112,6 +112,8 @@ class MainState extends ChangeNotifier {
 
     if (response.statusCode != 200) {
       throw Exception(response.body);
+    } else if (response.body.isEmpty) {
+      throw Exception('Empty response');
     }
 
     final orderJson = jsonDecode(response.body);
@@ -140,6 +142,8 @@ class MainState extends ChangeNotifier {
 
     if (response.statusCode != 200) {
       throw Exception(response.body);
+    } else if (response.body.isEmpty) {
+      throw Exception('Empty response');
     }
 
     final orderJson = jsonDecode(response.body);
