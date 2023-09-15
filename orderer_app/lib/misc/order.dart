@@ -26,9 +26,18 @@ class Order {
       'id': id,
       'date': date.toIso8601String(),
       'dishes': dishes.map((dish) => dish.toJson()).toList(),
-      'table': table.toJson(),
+      'tableId': table.toJson(),
       'paymentDate': paymentDate?.toIso8601String(),
       'notes': notes,
+    };
+  }
+
+  Map<String, dynamic> toServerJson() {
+    return {
+      'dishes': dishes.map((dish) => dish.toServerJson()).toList(),
+      'tableId': table.number,
+      if (paymentDate != null) 'paymentDate': paymentDate?.toIso8601String(),
+      if (notes != null) 'notes': notes,
     };
   }
 
@@ -46,13 +55,13 @@ class Order {
 }
 
 class OrderedDish {
-  final Dish dish;
-  final int quantity;
-  final String? notes;
+  final DishWithoutCategory dish;
+  int quantity;
+  String? notes;
 
   factory OrderedDish.fromJson(Map<String, dynamic> json) {
     return OrderedDish(
-      Dish.fromJson(json['dish']),
+      DishWithoutCategory.fromJson(json['dish']),
       json['quantity'],
       notes: json['notes'],
     );
@@ -66,24 +75,27 @@ class OrderedDish {
     };
   }
 
+  Map<String, dynamic> toServerJson() {
+    return {
+      'dishId': dish.id,
+      'quantity': quantity,
+      if (notes != null) 'notes': notes,
+    };
+  }
+
   OrderedDish(this.dish, this.quantity, {this.notes});
 }
 
-class Dish {
+class DishWithoutCategory {
   final int id;
   final String name;
-  final String? description;
   final int price;
-  final Category? category;
 
-  factory Dish.fromJson(Map<String, dynamic> json) {
-    return Dish(
+  factory DishWithoutCategory.fromJson(Map<String, dynamic> json) {
+    return DishWithoutCategory(
       json['id'],
       json['name'],
       json['price'],
-      category:
-          json['category'] == null ? null : Category.fromJson(json['category']),
-      description: json['description'],
     );
   }
 
@@ -92,12 +104,45 @@ class Dish {
       'id': id,
       'name': name,
       'price': price,
-      'category': category?.toJson(),
+    };
+  }
+
+  DishWithoutCategory(
+    this.id,
+    this.name,
+    this.price,
+    /* this.category, {this.description}*/
+  );
+}
+
+class Dish extends DishWithoutCategory {
+  final String? description;
+  final Category category;
+
+  @override
+  factory Dish.fromJson(Map<String, dynamic> json) {
+    return Dish(
+      json['id'],
+      json['name'],
+      json['price'],
+      Category.fromJson(json['category']),
+      description: json['description'],
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'price': price,
+      'category': category.toJson(),
       'description': description,
     };
   }
 
-  Dish(this.id, this.name, this.price, {this.category, this.description});
+  Dish(int id, String name, int price, this.category, {this.description})
+      : super(id, name, price);
 }
 
 class TableInfo {

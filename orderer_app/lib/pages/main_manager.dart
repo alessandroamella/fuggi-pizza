@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:orderer_app/components/address_card.dart';
-import 'package:orderer_app/misc/api_service.dart';
 import 'package:orderer_app/misc/main_state.dart';
 import 'package:orderer_app/misc/order.dart';
 import 'package:orderer_app/pages/manage_order.dart';
@@ -25,26 +24,6 @@ class MainManagerPage extends StatefulWidget {
 enum CrudAction { create, edit }
 
 class _MainManagerPage extends State<MainManagerPage> {
-  String? _error;
-
-  Future<List<Order>>? _orders = Future.value([]);
-
-  Future<void> _loadOrders() async {
-    setState(() {
-      _orders = null;
-    });
-    final orders = Provider.of<MainState>(context, listen: false).getOrders();
-    setState(() {
-      _orders = orders;
-    });
-  }
-
-  @override
-  void initState() {
-    _orders = Provider.of<MainState>(context, listen: false).getOrders();
-    super.initState();
-  }
-
   @override
   Widget build(BuildContext context) {
     return SharedLayout(
@@ -69,71 +48,89 @@ class _MainManagerPage extends State<MainManagerPage> {
           ),
           const SizedBox(height: 8),
           // futurebuilder of _orders
-          FutureBuilder(
-            future: _orders,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.done) {
-                if (snapshot.hasError) {
-                  _error = snapshot.error.toString();
+          Consumer<MainState>(
+            builder: (context, state, child) {
+              return FutureBuilder(
+                future: state.getOrders(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.done) {
+                    if (snapshot.hasError) {
+                      return Column(
+                        children: [
+                          const Text(
+                            'Errore',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(snapshot.error.toString()),
+                        ],
+                      );
+                    } else {
+                      final orders = snapshot.data as List<Order>;
 
-                  return Column(
-                    children: [
-                      const Text(
-                        'Errore',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(_error!),
-                      TextButton(
-                        onPressed: _loadOrders,
-                        child: const Text('Riprova'),
-                      ),
-                    ],
-                  );
-                } else {
-                  _error = null;
-                  final orders = snapshot.data as List<Order>;
+                      if (orders.isEmpty) {
+                        return const Center(child: Text('Nessun ordine'));
+                      } else {
+                        return Expanded(
+                          // child: RefreshIndicator(
+                          //   onRefresh: _reloadOrders,
+                          child: ListView.builder(
+                            itemCount: orders.length,
+                            itemBuilder: (context, index) {
+                              final order = orders[index];
+                              final amount = order.dishes
+                                  .map((e) => e.quantity * e.dish.price)
+                                  .reduce((a, b) => a + b);
+                              final amountStr =
+                                  (amount / 100).toStringAsFixed(2);
 
-                  if (orders.isEmpty) {
-                    return const Center(child: Text('Nessun ordine'));
-                  } else {
-                    return Expanded(
-                      child: RefreshIndicator(
-                        onRefresh: _loadOrders,
-                        child: ListView.builder(
-                          itemCount: orders.length,
-                          itemBuilder: (context, index) {
-                            final order = orders[index];
-                            final amount = order.dishes
-                                .map((e) => e.quantity * e.dish.price)
-                                .reduce((a, b) => a + b);
-                            final amountStr = (amount / 100).toStringAsFixed(2);
-                            return Card(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: <Widget>[
-                                  ListTile(
-                                    leading: const Icon(Icons.shopping_cart),
-                                    title: Text(
-                                        'Tavolo ${order.table.number.toString()} - €$amountStr'),
-                                    subtitle: Text(order.dishes
-                                        .map((e) =>
-                                            '${e.quantity}x${e.dish.name} (€${(e.dish.price / 100).toStringAsFixed(2)})')
-                                        .join(', ')),
+                              return InkWell(
+                                onTap: () {
+                                  // Naviga a una nuova pagina quando la Card viene toccata.
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) {
+                                        // Qui puoi creare la tua nuova pagina e passare i dati necessari.
+                                        return ManageOrderPage(
+                                          action: CrudAction.edit,
+                                          startingOrder: order,
+                                          // TODO onCrudDone: _reloadOrders,
+                                        );
+                                      },
+                                    ),
+                                  );
+                                },
+                                child: Card(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      ListTile(
+                                        leading:
+                                            const Icon(Icons.shopping_cart),
+                                        title: Text(
+                                            'Tavolo ${order.table.number.toString()} - €$amountStr'),
+                                        subtitle: Text(order.dishes
+                                            .map((e) =>
+                                                '${e.quantity}x${e.dish.name}')
+                                            .join(', ')),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    );
+                                ),
+                              );
+                            },
+                          ),
+                          // ),
+                        );
+                      }
+                    }
+                  } else {
+                    return const Center(child: CircularProgressIndicator());
                   }
-                }
-              } else {
-                return const Center(child: CircularProgressIndicator());
-              }
+                },
+              );
             },
           ),
         ],

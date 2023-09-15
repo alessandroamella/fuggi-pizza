@@ -5,6 +5,7 @@ class APIRoute {
   static const String order = '/order';
   static const String dish = '/dish';
   static const String table = '/table';
+  static const String category = '/category';
 }
 
 class ApiService {

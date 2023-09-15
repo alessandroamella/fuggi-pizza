@@ -19,22 +19,22 @@ class InsertAddressDialog extends StatefulWidget {
   State<StatefulWidget> createState() => _InsertAddressDialog();
 }
 
-enum _PingStatus {
+enum PingStatus {
   init,
   pinging,
   success,
   error,
 }
 
-String getPingStatusStr(_PingStatus? status) {
+String getPingStatusStr(PingStatus? status) {
   switch (status) {
-    case _PingStatus.init:
+    case PingStatus.init:
       return 'Inizializzazione';
-    case _PingStatus.pinging:
+    case PingStatus.pinging:
       return 'Ping in corso...';
-    case _PingStatus.success:
+    case PingStatus.success:
       return 'Server raggiungibile';
-    case _PingStatus.error:
+    case PingStatus.error:
       return 'Server non raggiungibile';
     default:
       return 'Errore';
@@ -44,7 +44,7 @@ String getPingStatusStr(_PingStatus? status) {
 class _InsertAddressDialog extends State<InsertAddressDialog> {
   String serverAddress = "";
   String? _manualPingStatus;
-  _PingStatus? _pingStatus = _PingStatus.init;
+  PingStatus? _pingStatus = PingStatus.init;
 
   @override
   Widget build(BuildContext context) {
@@ -61,11 +61,11 @@ class _InsertAddressDialog extends State<InsertAddressDialog> {
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             const SizedBox(height: 10),
-            if (_pingStatus == _PingStatus.pinging)
+            if (_pingStatus == PingStatus.pinging)
               const Center(child: CircularProgressIndicator())
             else
               TextField(
-                enabled: _pingStatus != _PingStatus.pinging,
+                enabled: _pingStatus != PingStatus.pinging,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   labelText: 'Indirizzo',
@@ -82,7 +82,7 @@ class _InsertAddressDialog extends State<InsertAddressDialog> {
       actions: [
         BasicDialogAction(
           title: const Text('Conferma'),
-          onPressed: _pingStatus == _PingStatus.pinging
+          onPressed: _pingStatus == PingStatus.pinging
               ? null
               : () {
                   if (serverAddress != null) {

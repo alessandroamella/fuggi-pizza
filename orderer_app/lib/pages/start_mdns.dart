@@ -78,6 +78,7 @@ class _StartPageState extends State<StartPage> {
   Future<void> _startApp() async {
     setState(() {
       _loading = true;
+      _error = null;
       _mdnsStatus = MDNSStatus.dbFetch;
     });
 
@@ -166,40 +167,11 @@ class _StartPageState extends State<StartPage> {
       _mdnsStatus = MDNSStatus.mdnsDiscovery;
     });
 
-    // TODO in futuro cambia hard-coded timeout
     _mdnsTimer = Timer(
       const Duration(seconds: 10),
       () {
         if (_mdnsStatus == MDNSStatus.mdnsDiscovery) {
-          const error = 'Server mDNS non trovato';
-          _stopMDNS();
-          setState(() {
-            _mdnsStatus = MDNSStatus.manualPing;
-            _error = error;
-            _loading = false;
-          });
-
-          showPlatformDialog(
-            context: context,
-            builder: (context) => InsertAddressDialog(
-              onSuccess: (String address) async {
-                await _saveToDB(
-                  "Server inserito",
-                  address,
-                  widget.apiServerPort,
-                );
-                _setReady(
-                  ConnectionInfo(
-                    serverName: "Server inserito",
-                    serverAddress: address,
-                    serverPort: widget.apiServerPort,
-                  ),
-                );
-              },
-              pingServer: _pingServer,
-              apiServerPort: widget.apiServerPort,
-            ),
-          );
+          _enterAddressManually();
         }
       },
     );
@@ -218,7 +190,7 @@ class _StartPageState extends State<StartPage> {
           info: ConnectionInfo(
             serverName: event.service!.name,
             serverAddress: service.ip,
-            serverPort: event.service!.port,
+            serverPort: widget.apiServerPort,
           ),
         ));
 
@@ -229,13 +201,11 @@ class _StartPageState extends State<StartPage> {
             ConnectionInfo(
               serverName: event.service!.name,
               serverAddress: service.ip,
-              serverPort: event.service!.port,
+              serverPort: widget.apiServerPort,
             ),
           );
         } else {
-          setState(() {
-            _error = 'Server API non raggiungibile';
-          });
+          _enterAddressManually();
         }
       }
     });
@@ -278,6 +248,38 @@ class _StartPageState extends State<StartPage> {
     });
   }
 
+  void _enterAddressManually() {
+    const error = 'Server mDNS non trovato';
+    _stopMDNS();
+    setState(() {
+      _mdnsStatus = MDNSStatus.manualPing;
+      _error = error;
+      _loading = false;
+    });
+
+    showPlatformDialog(
+      context: context,
+      builder: (context) => InsertAddressDialog(
+        onSuccess: (String address) async {
+          await _saveToDB(
+            "Server inserito",
+            address,
+            widget.apiServerPort,
+          );
+          _setReady(
+            ConnectionInfo(
+              serverName: "Server inserito",
+              serverAddress: address,
+              serverPort: widget.apiServerPort,
+            ),
+          );
+        },
+        pingServer: _pingServer,
+        apiServerPort: widget.apiServerPort,
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _stopMDNS();
@@ -310,9 +312,6 @@ class _StartPageState extends State<StartPage> {
                 const SizedBox(height: 10),
                 if (_loading)
                   const CircularProgressIndicator()
-                else if (_error != null &&
-                    (serverAddress == null || serverPort == null))
-                  Text('mDNS ${widget.mdnsServiceName} non trovato')
                 else if (serverAddress != null)
                   if (serverPort != null)
                     ServerAddressCard(
@@ -353,13 +352,24 @@ class _StartPageState extends State<StartPage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('Errore: '),
-                        Text(
-                          _error!,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        Expanded(
+                          child: Text(
+                            _error!,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.fade,
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       ],
                     ),
+                  ),
+                if (_mdnsStatus == null && _error != null)
+                  IconButton(
+                    onPressed: () {
+                      _startApp();
+                    },
+                    icon: const Icon(Icons.refresh),
+                    tooltip: 'Riprova',
                   ),
               ],
             ),
