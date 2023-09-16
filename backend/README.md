@@ -20,3 +20,5 @@ server porta 3000
 ```
 USERNAME ALL=(ALL) NOPASSWD : /home/USERNAME/.../scripts/printer_print.py
 ```
+
+**Installa `python-escpos`**

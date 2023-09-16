@@ -42,6 +42,8 @@ dependencies:
   shared_preferences: ^2.2.1
   provider: ^6.0.5
   dropdown_search: ^5.0.6
+  smooth_page_indicator: ^1.1.0
+  intl: ^0.18.1
 
 dev_dependencies:
   flutter_test:

@@ -38,14 +38,13 @@ model Dish {
 }
 
 model OrderedDish {
+  id       Int     @id @default(autoincrement())
   order    Order   @relation(fields: [orderId], references: [id])
   orderId  Int
   dish     Dish    @relation(fields: [dishId], references: [id])
   dishId   Int
   quantity Int
   notes    String?
-
-  @@id([orderId, dishId])
 }
 
 model Category {

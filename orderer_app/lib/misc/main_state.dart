@@ -156,7 +156,7 @@ class MainState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> removeOrder(Order order) async {
+  Future<void> deleteOrder(Order order) async {
     await _ensureLoaded();
     final response = await api.client
         .delete(api.uri('/order/${order.id}'))

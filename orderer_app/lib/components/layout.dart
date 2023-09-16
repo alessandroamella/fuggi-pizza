@@ -29,22 +29,22 @@ class SharedLayout extends StatelessWidget {
           footer ?? Container(),
         ],
       ),
-      bottomNavigationBar: Container(
-        color: Colors.grey[800],
-        padding: const EdgeInsets.all(10.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Text(
-              '© Alessandro Amella',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16.0,
-              ),
-            ),
-          ],
-        ),
-      ),
+      // bottomNavigationBar: Container(
+      //   color: Colors.grey[800],
+      //   padding: const EdgeInsets.all(10.0),
+      //   child: Row(
+      //     mainAxisAlignment: MainAxisAlignment.center,
+      //     children: const [
+      //       Text(
+      //         '© Alessandro Amella',
+      //         style: TextStyle(
+      //           color: Colors.white,
+      //           fontSize: 16.0,
+      //         ),
+      //       ),
+      //     ],
+      //   ),
+      // ),
       floatingActionButton: floatingActionButton,
     );
   }

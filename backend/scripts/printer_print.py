@@ -2,6 +2,7 @@ import sys
 from escpos.printer import Usb
 import json
 from datetime import datetime
+import pytz
 
 if len(sys.argv) >= 4:
     vendor_id = int(sys.argv[1], 16)
@@ -22,7 +23,9 @@ def print_order(order):
     # now = datetime.now()
     # parse date from json iso format
     now = datetime.strptime(order['date'], '%Y-%m-%dT%H:%M:%S.%fZ')
-    date_time = now.strftime("%H:%M:%S")
+    italian_timezone = pytz.timezone('Europe/Rome')
+    now_italian = now.replace(tzinfo=pytz.utc).astimezone(italian_timezone)
+    date_time = now_italian.strftime("%H:%M:%S")
     p.text(f'Tavolo: {order["table"]["number"]}\n')
     p.text(f'Ora: {date_time}\n\n')
 
@@ -38,7 +41,7 @@ def print_order(order):
         amount += item['quantity'] * item['dish']['price']
 
         if item['notes']:
-            p.set(align='left', font='a', height=1, width=1)
+            p.set(align='left', font='a', height=2, width=2)
             p.text(f'Note: {item["notes"]}\n')
         p.text('\n')
 

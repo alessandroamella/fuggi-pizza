@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:orderer_app/components/address_card.dart';
 import 'package:orderer_app/misc/main_state.dart';
 import 'package:orderer_app/misc/order.dart';
-import 'package:orderer_app/pages/manage_order.dart';
+import 'package:orderer_app/pages/new_order.dart';
+import 'package:orderer_app/pages/view_order.dart';
 import 'package:provider/provider.dart';
 import '../components/layout.dart';
 import '../misc/connection_info.dart';
@@ -21,9 +23,61 @@ class MainManagerPage extends StatefulWidget {
   State<MainManagerPage> createState() => _MainManagerPage();
 }
 
-enum CrudAction { create, edit }
+enum CrudAction { view, create, edit }
 
 class _MainManagerPage extends State<MainManagerPage> {
+  bool _isDeleting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    initializeDateFormatting('it_IT', null);
+  }
+
+  Future<void> _deleteOrder(MainState state, Order order) async {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Elimina ordine'),
+          content:
+              Text('Sei sicuro di voler eliminare l\'ordine #${order.id}?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Annulla'),
+            ),
+            TextButton(
+              onPressed: _isDeleting
+                  ? null
+                  : () {
+                      setState(() {
+                        _isDeleting = true;
+                      });
+
+                      state.deleteOrder(order).then((value) {
+                        Navigator.of(context).pop();
+                      }).catchError((error) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Errore: $error'),
+                          ),
+                        );
+                        Navigator.of(context).pop();
+                      });
+                    },
+              child: const Text('Elimina'),
+            ),
+          ],
+        );
+      },
+    ).then((value) => {
+          setState(() {
+            _isDeleting = false;
+          })
+        });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SharedLayout(
@@ -76,6 +130,7 @@ class _MainManagerPage extends State<MainManagerPage> {
                           // child: RefreshIndicator(
                           //   onRefresh: _reloadOrders,
                           child: ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
                             itemCount: orders.length,
                             itemBuilder: (context, index) {
                               final order = orders[index];
@@ -93,10 +148,8 @@ class _MainManagerPage extends State<MainManagerPage> {
                                     MaterialPageRoute(
                                       builder: (context) {
                                         // Qui puoi creare la tua nuova pagina e passare i dati necessari.
-                                        return ManageOrderPage(
-                                          action: CrudAction.edit,
-                                          startingOrder: order,
-                                          // TODO onCrudDone: _reloadOrders,
+                                        return ViewOrderPage(
+                                          order: order,
                                         );
                                       },
                                     ),
@@ -110,11 +163,18 @@ class _MainManagerPage extends State<MainManagerPage> {
                                         leading:
                                             const Icon(Icons.shopping_cart),
                                         title: Text(
-                                            'Tavolo ${order.table.number.toString()} - €$amountStr'),
+                                            '#${order.id} - Tav. ${order.table.number} - €$amountStr'),
                                         subtitle: Text(order.dishes
                                             .map((e) =>
                                                 '${e.quantity}x${e.dish.name}')
                                             .join(', ')),
+                                        trailing: IconButton(
+                                            icon: const Icon(Icons.delete),
+                                            onPressed: _isDeleting
+                                                ? null
+                                                : () {
+                                                    _deleteOrder(state, order);
+                                                  }),
                                       ),
                                     ],
                                   ),
@@ -140,10 +200,7 @@ class _MainManagerPage extends State<MainManagerPage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const ManageOrderPage(
-                action: CrudAction.create,
-                onCrudDone: null,
-              ),
+              builder: (context) => const NewOrderPage(),
             ),
           );
         },

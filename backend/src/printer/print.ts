@@ -76,7 +76,7 @@ export class Printer {
 
     return new Promise((resolve, reject) => {
       retry(
-        { times: 60, interval: 5000 },
+        { times: 5, interval: 5000 },
         (callback) => {
           logger.debug("Print try");
 

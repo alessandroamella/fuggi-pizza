@@ -171,7 +171,7 @@ class _StartPageState extends State<StartPage> {
       const Duration(seconds: 10),
       () {
         if (_mdnsStatus == MDNSStatus.mdnsDiscovery) {
-          _enterAddressManually();
+          _enterAddressManually(null);
         }
       },
     );
@@ -205,7 +205,7 @@ class _StartPageState extends State<StartPage> {
             ),
           );
         } else {
-          _enterAddressManually();
+          _enterAddressManually(service.ip);
         }
       }
     });
@@ -248,7 +248,7 @@ class _StartPageState extends State<StartPage> {
     });
   }
 
-  void _enterAddressManually() {
+  void _enterAddressManually(String? defaultAddress) {
     const error = 'Server mDNS non trovato';
     _stopMDNS();
     setState(() {
@@ -260,6 +260,7 @@ class _StartPageState extends State<StartPage> {
     showPlatformDialog(
       context: context,
       builder: (context) => InsertAddressDialog(
+        defaultAddress: defaultAddress,
         onSuccess: (String address) async {
           await _saveToDB(
             "Server inserito",

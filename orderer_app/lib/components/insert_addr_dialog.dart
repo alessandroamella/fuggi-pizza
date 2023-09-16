@@ -7,12 +7,14 @@ class InsertAddressDialog extends StatefulWidget {
   final Function(String) onSuccess;
   final Function(ApiService) pingServer;
   final int apiServerPort;
+  final String? defaultAddress;
 
   const InsertAddressDialog({
     super.key,
     required this.onSuccess,
     required this.pingServer,
     required this.apiServerPort,
+    this.defaultAddress,
   });
 
   @override
@@ -20,20 +22,20 @@ class InsertAddressDialog extends StatefulWidget {
 }
 
 enum PingStatus {
-  init,
   pinging,
   success,
+  invalid,
   error,
 }
 
 String getPingStatusStr(PingStatus? status) {
   switch (status) {
-    case PingStatus.init:
-      return 'Inizializzazione';
     case PingStatus.pinging:
       return 'Ping in corso...';
     case PingStatus.success:
       return 'Server raggiungibile';
+    case PingStatus.invalid:
+      return 'Indirizzo non valido';
     case PingStatus.error:
       return 'Server non raggiungibile';
     default:
@@ -43,21 +45,31 @@ String getPingStatusStr(PingStatus? status) {
 
 class _InsertAddressDialog extends State<InsertAddressDialog> {
   String serverAddress = "";
-  String? _manualPingStatus;
-  PingStatus? _pingStatus = PingStatus.init;
+  final _controller = TextEditingController();
+  PingStatus? _pingStatus;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.defaultAddress != null) {
+      serverAddress = widget.defaultAddress!;
+      _controller.text = widget.defaultAddress!;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return BasicDialogAlert(
-      title: const Text('Inserisci indirizzo server API'),
+      title: const Text('Inserisci indirizzo server'),
       content: SingleChildScrollView(
         child: Column(
           children: [
             const Text('Inserisci manualmente l\'indirizzo del server'),
             const SizedBox(height: 10),
-            if (_manualPingStatus != null)
+            if (_pingStatus != null)
               Text(
-                _manualPingStatus!,
+                getPingStatusStr(_pingStatus),
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             const SizedBox(height: 10),
@@ -66,6 +78,7 @@ class _InsertAddressDialog extends State<InsertAddressDialog> {
             else
               TextField(
                 enabled: _pingStatus != PingStatus.pinging,
+                controller: _controller,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   labelText: 'Indirizzo',
@@ -85,9 +98,9 @@ class _InsertAddressDialog extends State<InsertAddressDialog> {
           onPressed: _pingStatus == PingStatus.pinging
               ? null
               : () {
-                  if (serverAddress != null) {
+                  if (serverAddress.isNotEmpty) {
                     setState(() {
-                      _manualPingStatus = 'Ping in corso...';
+                      _pingStatus = PingStatus.pinging;
                     });
 
                     widget
@@ -100,20 +113,20 @@ class _InsertAddressDialog extends State<InsertAddressDialog> {
                         .then((canPing) {
                       if (canPing) {
                         setState(() {
-                          _manualPingStatus = null;
+                          _pingStatus = PingStatus.success;
                         });
 
                         Navigator.pop(context);
                         widget.onSuccess(serverAddress);
                       } else {
                         setState(() {
-                          _manualPingStatus = 'Server non raggiungibile';
+                          _pingStatus = PingStatus.error;
                         });
                       }
                     });
                   } else {
                     setState(() {
-                      _manualPingStatus = 'Inserisci un indirizzo valido';
+                      _pingStatus = PingStatus.invalid;
                     });
                   }
                 },

@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:orderer_app/misc/order.dart';
 
 class SearchableMenu extends StatefulWidget {
-  final Function(Dish) onSelect;
+  final Function(Dish)? onSelect;
+  final Function(Dish)? onRemove;
   final List<Dish> dishes;
+  final List<OrderedDish>? orderedDishes;
 
   const SearchableMenu({
     super.key,
     required this.onSelect,
+    required this.onRemove,
     required this.dishes,
+    this.orderedDishes,
   });
 
   @override
@@ -97,15 +101,49 @@ class _SearchableMenu extends State<SearchableMenu> {
               itemBuilder: (context, index) {
                 final item = _filteredDishes[index];
 
+                final amount = widget.orderedDishes == null ||
+                        widget.orderedDishes!
+                            .every((element) => element.dish.id != item.id)
+                    ? 0
+                    : widget.orderedDishes!
+                        .where((element) => element.dish.id == item.id)
+                        .fold<int>(
+                          0,
+                          (previousValue, element) =>
+                              previousValue + element.quantity,
+                        );
+
                 return ListTile(
                   title: Text(item.name),
                   subtitle: Text('€${(item.price / 100).toStringAsFixed(2)}'),
+                  onLongPress: () {
+                    FocusScope.of(context).unfocus();
+                    searchController.clear();
+                    search('');
+                    if (widget.onRemove != null) {
+                      widget.onRemove!(item);
+                    }
+                  },
                   onTap: () {
                     FocusScope.of(context).unfocus();
                     searchController.clear();
                     search('');
-                    widget.onSelect(item);
+                    if (widget.onSelect != null) {
+                      widget.onSelect!(item);
+                    }
                   },
+                  trailing: amount == 0
+                      ? null
+                      : CircleAvatar(
+                          backgroundColor: Colors.green,
+                          child: Text(
+                            amount.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                 );
               },
             ),
