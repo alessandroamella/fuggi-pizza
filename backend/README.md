@@ -13,7 +13,7 @@ Esegui (CREDO, guarda XML config):
 
 Si usa mDNS con avahi (guarda se serve config per raspberry!!)
 
-server porta 3000
+server porta 5500
 
 ### RICORDA DI FARE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -22,3 +22,5 @@ USERNAME ALL=(ALL) NOPASSWD : /home/USERNAME/.../scripts/printer_print.py
 ```
 
 **Installa `python-escpos`**
+
+Tasto segui pizze

@@ -68,7 +68,8 @@ class _SelectDishesPage extends State<SelectDishesPage> {
         ),
         TextButton(
           onPressed: () {
-            selectedDishes[index].notes = notesController.text;
+            selectedDishes[index].notes =
+                notesController.text.isEmpty ? null : notesController.text;
             widget.onDishesSelect(selectedDishes);
             Navigator.of(context).pop();
           },

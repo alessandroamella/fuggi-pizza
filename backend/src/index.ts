@@ -1,5 +1,6 @@
 import Elysia, { t } from "elysia";
 import { swagger } from "@elysiajs/swagger";
+import { cors } from "@elysiajs/cors";
 import { PrismaClient } from "@prisma/client";
 import { logger } from "./shared/logger";
 import { settings } from "./config/settings";
@@ -21,6 +22,7 @@ const app = new Elysia()
       },
     }),
   )
+  .use(cors())
   .decorate("db", new PrismaClient())
   .group("/api/v1", (app) => {
     return app

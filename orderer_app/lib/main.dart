@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:orderer_app/pages/start_mdns.dart';
 
 const String mdnsServiceName = '_fuggipizza._tcp';
-const int apiServerPort = 3000;
+const int apiServerPort = 5500;
 
 void main() {
   runApp(
